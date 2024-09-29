@@ -24,14 +24,16 @@ func query(fqdn string, qtype uint16) (*dns.Msg, error) {
 	c := new(dns.Client)
 	c.ReadTimeout = defaultTimeout
 
-	for i := range conf.Servers {
-		server := conf.Servers[i]
+	for _, server := range conf.Servers {
 		r, _, err := c.Exchange(m, server+":"+conf.Port)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to exchange with server %s: %w", server, err)
 		}
-		if r == nil || r.Rcode == dns.RcodeNameError || r.Rcode == dns.RcodeSuccess {
-			return r, err
+		if r == nil {
+			return nil, errors.New("received nil response from server")
+		}
+		if r.Rcode == dns.RcodeNameError || r.Rcode == dns.RcodeSuccess {
+			return r, nil
 		}
 	}
 
